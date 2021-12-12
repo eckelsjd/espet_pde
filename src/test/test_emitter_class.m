@@ -2,26 +2,17 @@ clear all;
 close all;
 clc;
 
-% d = 5e-3; % mean(d_range); % 3e-3
-% rc = 3e-3;  % mean(rc_range);
-% alpha = 43*(pi/180); % mean(alpha_range) * pi/180;
-% h = 0.01432;  % mean(h_range); corresponds to rb=1e-2
-% ra = 2e-3; % mean(ra_range);
-
-d = 0.002;% 3e-3; % mean(d_range);
-rc = 0.002;%2e-3;  % mean(rc_range);
-alpha = 30*(pi/180); % mean(alpha_range) * pi/180;
-h = 0.015;% 0.01432;  % mean(h_range); corresponds to rb=1e-2
-ra = 0.004; % mean(ra_range);
-
+d = 0.002; % 3e-3;
+rc = 0.002; %2e-3;  
+alpha = 30*(pi/180); 
+h = 0.015; % 0.01432; 
+ra = 0.004; 
+extractor_thickness = 0.001; % [m]
 mesh_size = 0.0003; % 0.00023 [m]
-refine_factor = 4;
 
 %% Test 2D axisymmetric
-emitter = EmitterSim(d,rc,alpha,h,ra,2);
-emitter.emitterMesh(mesh_size, refine_factor);
-emitter.emitterSolve();
-emitter.emitterPlot();
+emitter = Emitter(d, rc, alpha, h, ra, extractor_thickness, mesh_size);
+hyper = Hyperboloid(d, rc, alpha, h, ra, extractor_thickness, mesh_size);
 
 %% Test far field
 % emitter = EmitterSim(d,rc,alpha,h,ra,0);
@@ -84,3 +75,23 @@ emitter.emitterPlot();
 % plot(nodes(k,1),nodes(k,2),'ok');
 % plot(nodes(:,1),nodes(:,2),'.g');
 % emitter.emitterPlot()
+
+% n = [E_x E_y];
+% n_mag = sqrt(sum(n.^2,2));
+% un = zeros(size(n));
+% un(:,1) = n(:,1)./n_mag;
+% un(:,2) = n(:,2)./n_mag;
+% % step = emitter.emagmodel.Mesh.MinElementSize/3;
+% step = 0.03*10^(-3);
+% offset_x = emitter_x + step*un(:,1);
+% offset_y = emitter_y + step*un(:,2);
+% 
+% q_points = [offset_x, offset_y];
+% nodes = emitter.emagmodel.Mesh.Nodes';
+% emitter_nodes = findNodes(emitter.emagmodel.Mesh, 'region', 'Edge', [1 2]);
+% nodes(emitter_nodes,:) = NaN;
+% k = dsearchn(nodes, q_points);
+% 
+% E_x = emitter.results.ElectricField.Ex(k,1);
+% E_y = emitter.results.ElectricField.Ey(k,1);
+% offset_Emag = sqrt(E_x.^2 + E_y.^2);

@@ -1,4 +1,4 @@
-classdef EmitterSim < handle
+classdef EmitterSim_old < handle
     properties
         % Arguments
         d {mustBeNumeric}           % tip-to-extractor distance [m]
@@ -25,6 +25,7 @@ classdef EmitterSim < handle
         cmap                        % color map for plots
 
         far_field                   % for testing (switch geometry)
+        N
 
     end
 
@@ -87,16 +88,62 @@ classdef EmitterSim < handle
             self.emitter_face = 1;
             self.air_face = 2;
             self.extractor_face = 3;
+            self.N = 100;
 
             % Initialization setup
             if self.far_field == 1
                 self.farFieldGeometry();
             elseif self.far_field == 2
                 self.axiGeometry() % This is the current best one
+            elseif self.far_field == 3
+                self.hyperboloid();
             else
                 self.constructGeometry(); % This is the OG
             end
             self.setupModel();
+        end
+
+        function hyperboloid(self)
+            % Calculated values
+            curve_y_delta = self.rc - self.rc*sin(self.alpha);  % curved edge y-delta [m]
+            curve_x_delta = self.rc*cos(self.alpha);            % curved edge x-delta [m]
+            h_cone = self.h - curve_y_delta;                    % height of emitter cone [m]
+            self.rb = curve_x_delta + h_cone*tan(self.alpha);   % Emitter base radius [m]
+        
+            % Emitter points [X,Y] : (0,0) is below emitter tip
+            E1 = [0 self.d];
+            E3 = [E1(1)+self.rb, E1(2)+self.h];
+            x_coord = linspace(E1(1),E3(1),self.N+1);
+            H0 = 1/self.rc;
+            eta0 = sqrt( (H0*self.d)/(H0*self.d + 1) );
+            a = self.d * sqrt( (H0*self.d + 1)/(H0*self.d) );
+            xi_coord = sqrt(1 + (x_coord/(a*sqrt(1-eta0^2))).^2);
+            y_coord = a*eta0*xi_coord;
+            E = zeros(self.N,10);
+            E(:,1) = 2;
+            E(:,2) = x_coord(1:self.N);
+            E(:,3) = x_coord(2:self.N+1);
+            E(:,4) = y_coord(1:self.N);
+            E(:,5) = y_coord(2:self.N+1);
+            E(:,6) = self.external_face;
+            E(:,7) = self.emitter_face;
+            x_max = E3(1) * 1.2;          % Scene x boundary
+            E3(2) = max(y_coord);
+           
+            % Bounding box (scene) points
+            S1 = [0 0];
+            S2 = [x_max S1(2)];
+            S3 = [S2(1) E3(2)];
+
+            % Construct decomposed geometry matrix manually (descg as an alternative)
+            % Format: [segment_type, start_x, end_x, start_y, end_y, left_face_id, right_face_id, center_x, center_y, radius]'
+            % segment_type: 1=round edge, 2=straight line
+            air_top = [2, E3(1), S3(1), E3(2), S3(2), self.external_face, self.emitter_face, zeros(1,3)]';
+            air_right = [2, S3(1), S2(1), S3(2), S2(2), self.external_face, self.emitter_face, zeros(1,3)]';
+            bottom = [2, S2(1), S1(1), S2(2), S1(2), self.external_face, self.emitter_face, zeros(1,3)]';
+            air_left = [2, S1(1), E1(1), S1(2), E1(2), self.external_face, self.emitter_face, zeros(1,3)]';
+        
+            self.geo = [E', air_top, air_right, bottom, air_left]; 
         end
 
         function axiGeometry(self)
@@ -303,6 +350,11 @@ classdef EmitterSim < handle
                 electromagneticBC(self.emagmodel, 'Voltage', 0, 'Edge', [5,6,7,9]);
                 electromagneticSource(self.emagmodel, 'ChargeDensity', 0, 'Face', self.emitter_face);
                 electromagneticProperties(self.emagmodel, 'RelativePermittivity', permittivity_air, 'Face', self.emitter_face);
+            elseif self.far_field == 3
+                electromagneticBC(self.emagmodel, 'Voltage', emitter_voltage, 'Edge', [1:self.N+1]);
+                electromagneticBC(self.emagmodel, 'Voltage', 0, 'Edge', [self.N+3]);
+                electromagneticSource(self.emagmodel, 'ChargeDensity', 0, 'Face', self.emitter_face);
+                electromagneticProperties(self.emagmodel, 'RelativePermittivity', permittivity_air, 'Face', self.emitter_face);
             else
                 electromagneticBC(self.emagmodel, 'Voltage', emitter_voltage, 'Edge', [faceEdges(ag,self.emitter_face), 11]);
                 electromagneticBC(self.emagmodel, 'Voltage', 0, 'Edge', faceEdges(ag,self.extractor_face));
@@ -325,6 +377,8 @@ classdef EmitterSim < handle
             else
                 if self.far_field == 2
                     generateMesh(self.emagmodel, 'Hmax', mesh_size, 'Hgrad', growth_rate, 'Hedge', {[1 2 5 6 7 10], mesh_size/refine_factor});
+                elseif self.far_field == 3
+                    generateMesh(self.emagmodel, 'Hmax', mesh_size, 'Hgrad', growth_rate, 'Hedge', {[1:self.N+1], mesh_size/refine_factor});
                 else
                     % Refine around edges 1, 2, 7, 8, 9, 10
                     generateMesh(self.emagmodel, 'Hmax', mesh_size, 'Hgrad', growth_rate, 'Hedge', {[1 2 7 8 9 10], mesh_size/refine_factor});
@@ -349,7 +403,11 @@ classdef EmitterSim < handle
             self.EintrpY = reshape(Eintrp.Ey,size(self.yg));
         
             % Get emitter nodes
-            emitter_nodes = findNodes(self.emagmodel.Mesh, 'region', 'Edge', [1 2]);
+            if self.far_field == 3
+                emitter_nodes = findNodes(self.emagmodel.Mesh, 'region', 'Edge', [1:self.N]);
+            else
+                emitter_nodes = findNodes(self.emagmodel.Mesh, 'region', 'Edge', [1 2]);
+            end
             emitter_x = self.emagmodel.Mesh.Nodes(1,emitter_nodes);
             emitter_y = self.emagmodel.Mesh.Nodes(2,emitter_nodes);
             emitter_ds = [0, sqrt(diff(emitter_x).^2 + diff(emitter_y).^2)];
