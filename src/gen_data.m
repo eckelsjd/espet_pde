@@ -5,7 +5,7 @@ clear all;
 close all;
 clc;
 addpath('.\emitter\');
-data_dir = '..\data\afet\';
+data_dir = '..\data\feasible\';
 files = dir(fullfile(data_dir,'sims'));
 prefix = 'train';
 

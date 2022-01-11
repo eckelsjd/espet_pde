@@ -7,8 +7,7 @@ classdef Hyperboloid < EmitterSim
     end
 
     methods
-        function self = Hyperboloid(d, rc, alpha, h, ra, te, ms, right_sf)
-            V0 = 1000; % [V]
+        function self = Hyperboloid(d, rc, alpha, h, ra, te, V0, ms, right_sf)
             self = self@EmitterSim(d, rc, alpha, h, ra, te, V0, ms);
             self.right_sf = right_sf;
             geo = self.constructGeometry(); % needs to set v,z,e edges

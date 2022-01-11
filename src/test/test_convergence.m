@@ -15,46 +15,63 @@ ra = 254*10^(-6);
 extractor_thickness = 76*10^(-6);
 V0 = 1000;
 
+%% Feasible design
+% d = 50E-06;
+% rc = 10E-06;
+% alpha = 30*(pi/180);
+% h = 200E-06;
+% ra = 80E-06;
+% extractor_thickness = 10*10^(-6);
+% V0 = 1000;
+
+% Estimate mesh size
+% N = 20;
+% dtheta = ((pi/2)-alpha)/N;
+% ds = rc*dtheta;
+
 %% Test mesh convergence
 % Reference solution
-% mesh_ref = 5*10^(-7);
+% mesh_ref = 5*10^(-3);
 % hyper_ref = Hyperboloid(d,rc,alpha,h,ra,extractor_thickness,mesh_ref);
 % emitter_ref = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0, mesh_ref);
 load afet_ref_emitter.mat
-[xref, yref, sref, Exref, Eyref] = EPOST.emitter_solution(emitter_ref);
+% [xref, yref, sref, Exref, Eyref] = EPOST.emitter_solution(emitter_ref);
 % emitter = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0,2e-06);
 % [ex, ey, es, eEx,eEy] = EPOST.emitter_solution(emitter);
 % e_sol = sqrt(eEx.^2 + eEy.^2);
-% [r,z,E_r, E_z] = EPOST.ms_solution(emitter_ref);
-% ref_Emag = sqrt(E_r.^2 + E_z.^2);
-ref_sol = sqrt(Exref.^2 + Eyref.^2);
+[r,z,E_r, E_z] = EPOST.ms_solution(emitter_ref);
+ref_Emag = sqrt(E_r.^2 + E_z.^2);
+% ref_sol = sqrt(Exref.^2 + Eyref.^2);
 
 % Simulation
 % ref_sol = smooth(ref_sol);
 % ms = [5e-7, 8e-7, 1e-6, 2e-6, 3e-6, 7e-6, 1e-5, 5e-5];
-ms = [1e-6];
+ms = [5e-7];
 plotColors = jet(length(ms));
 rmse = zeros(size(ms));
 figure()
 set(gcf,'color','white');
 for ii = 1:length(ms)
-    e = Emitter(d,rc,alpha,0.5*h,ra,extractor_thickness,V0, ms(ii));
+    e = Hyperboloid(d,rc,alpha,h,ra,extractor_thickness,V0, ms(ii), 2);
     [hx,hy,hs,hEx,hEy] = EPOST.emitter_solution(e);
     h_Emag = sqrt(hEx.^2 + hEy.^2);
-    ref_interp = interp1(xref, ref_sol, hx);
-    rmse(ii) = sqrt(mean((h_Emag - ref_interp).^2));
-    plot(hx, h_Emag,'Color', plotColors(ii,:));
+%     ref_interp = interp1(xref, ref_sol, hx);
+%     rmse(ii) = sqrt(mean((h_Emag - ref_interp).^2));
+%     plot(hx, h_Emag,'Color', plotColors(ii,:));
+    plot(hx, h_Emag,'--r');
     hold on
 end
-plot(xref, ref_sol, '-k');
+plot(r, ref_Emag, '-k');
 xlabel('X [m]','Interpreter','latex');
 ylabel('$|\vec{E}|$ [V/m]', 'Interpreter','latex');
+legend('Simulation','Analytical')
 % EPOST.solplot(emitter_ref);
+EPOST.solplot(e);
 
-figure()
-semilogx(ms, rmse, '-ok');
-xlabel('Mesh size [m]','Interpreter','latex')
-ylabel('RMSE with reference simulation', 'Interpreter','latex');
+% figure()
+% semilogx(ms, rmse, '-ok');
+% xlabel('Mesh size [m]','Interpreter','latex')
+% ylabel('RMSE with reference simulation', 'Interpreter','latex');
 
 % figure()
 % semilogx(ms, etip,'ok');
