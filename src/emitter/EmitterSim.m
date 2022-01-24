@@ -22,10 +22,16 @@ classdef (Abstract) EmitterSim < handle
     end
 
     methods
-        function self = EmitterSim(d, rc, alpha, h, ra, te, V0, ms)
+        function self = EmitterSim(d, rc, alpha, h, ra, te, V0)
             self.d = d; self.rc = rc; self.alpha = alpha; self.h = h;
-            self.ra = ra; self.te = te; self.V0 = V0; self.ms = ms;
+            self.ra = ra; self.te = te; self.V0 = V0;
+
+            % Estimate the mesh size with N discretization at the tip
             % self.ms is (min) mesh size along emitter surface
+            N = 25;
+            dtheta = ((pi/2)-alpha)/N;
+            ds = rc*dtheta;
+            self.ms = ds;
         end
 
         function solve(self, geo, v_edges, z_edges)
@@ -38,7 +44,7 @@ classdef (Abstract) EmitterSim < handle
             growth_rate = 1.05;
             refine_factor = 8;
             ms_max = refine_factor*self.ms;
-            Nmax = 10000;        % max nodes 
+            Nmax = 10000;          % max nodes 
             [max_vals, ~] = max(self.emagmodel.Geometry.Vertices);
             xmax = max_vals(1); ymax = max_vals(2);
             [min_vals, ~] = min(self.emagmodel.Geometry.Vertices);
@@ -65,6 +71,7 @@ classdef (Abstract) EmitterSim < handle
                 if iter > 10
                     error('Could not fix mesh :(\n');
                 end
+                % THIS BREAKS FOR HYPERBOLOID.m DISCRETIZATION
                 generateMesh(self.emagmodel, 'Hmax', ms_max, 'Hgrad',...
                     growth_rate, 'Hedge', {[self.e_edges(1)], self.ms, ...
                     [self.e_edges(2:end)], (self.ms+ms_max)/2});
@@ -72,7 +79,7 @@ classdef (Abstract) EmitterSim < handle
 %                     growth_rate, 'Hedge', {[self.e_edges(1)], self.ms, ...
 %                     [self.e_edges(2:end)], self.ms});
                 Q = meshQuality(self.emagmodel.Mesh);
-                bad_mesh = any(Q<0.2);
+                bad_mesh = any(Q<0.5);
 
                 if bad_mesh
                     self.ms = 1.25*self.ms;
@@ -86,10 +93,6 @@ classdef (Abstract) EmitterSim < handle
             end
             
             self.emagresults = solve(self.emagmodel);
-%             disp(size(self.emagmodel.Mesh.Nodes))
-%             disp(N_est);
-%             disp(ms_max);
-%             disp(refine_factor*self.ms);
         end
     end
 end

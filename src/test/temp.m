@@ -1,14 +1,29 @@
+%% Load data
 clear all;
 close all;
 clc;
+addpath('../emitter')
+addpath('..')
+load('../../data/feasible/models/model_dffnet.mat');
+% load('../../data/feasible/model_tr.mat');
+f = importdata('../../data/feasible/samples/samples.txt');
 
-N = 1000;
-mu = [0.5 0.5];
-cov = [0.6 0.3; 0.3 0.5];
+% nbins = 10;
+h = figure();
+subplot(5,1,1);
+histogram(f.data(:,1)*1000,'Normalization','probability');
+xlabel('d [mm]','Interpreter','latex');
+subplot(5,1,2);
+histogram(f.data(:,2)*1000,'Normalization','probability');
+xlabel('$r_c$ [mm]','Interpreter','latex');
+subplot(5,1,3);
+histogram(f.data(:,3),'Normalization','probability');
+xlabel('$\alpha$ [deg]','Interpreter','latex');
+subplot(5,1,4);
+histogram(f.data(:,4)*1000,'Normalization','probability');
+xlabel('$h$ [mm]','Interpreter','latex');
+subplot(5,1,5);
+histogram(f.data(:,1)*1000,'Normalization','probability');
+xlabel('$r_a$ [mm]','Interpreter','latex');
 
-R = mvnrnd(mu,cov, N);
-
-figure()
-plot(R(:,1),R(:,2),'.k','MarkerSize',8);
-xlabel('$E_x$ [V/m]','Interpreter','latex');
-ylabel('$E_y$ [V/m]', 'Interpreter','latex');
+set(gcf,'Position',[200 800 400 700]);

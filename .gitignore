@@ -1,2 +1,6 @@
 *.mat
 /.idea
+*.pkl
+*.txt
+*.asv
+.ipynb_checkpoints

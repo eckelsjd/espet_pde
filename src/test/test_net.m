@@ -1,14 +1,16 @@
+%% Load data
 clear all;
 close all;
 clc;
 
-addpath('..\emitter')
+addpath('../emitter')
 addpath('..')
-load('../../data/feasible/model.mat');
-load('../../data/feasible/model_tr.mat');
+load('../../data/feasible/models/model_dffnet.mat');
+% load('../../data/feasible/model_tr.mat');
 f = importdata('../../data/feasible/samples/samples.txt');
-nsamples = 1035;
-params = min(f.data(1:nsamples,:));
+
+%% Test on mean design
+params = mean(f.data,1);
 d = params(1);
 rc = params(2);
 alpha = params(3)*(pi/180);
@@ -18,81 +20,241 @@ extractor_thickness = 76*10^(-6);
 V0 = 1000;
 
 % Simulation prediction
-N = 20;
-dtheta = ((pi/2)-alpha)/N;
-ds = rc*dtheta;
-emitter = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0,ds);
+emitter = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0);
 [x,y,s,Ex,Ey] = EPOST.emitter_solution(emitter);
 t_mag = sqrt(Ex.^2 + Ey.^2);
 
 % Network prediction
 N = 200;
 sd = linspace(0,1,N);
-lchar = h;
-in = zeros(5,N);
-in(1,:) = d/lchar;
-in(2,:) = rc/lchar;
-in(3,:) = alpha;
-in(4,:) = ra/lchar;
-in(5,:) = sd;
-ypred = net(in);
-pred_mag = sqrt(ypred(1,:).^2 + ypred(2,:).^2)*(V0/lchar);
+xpred = [repmat([d/h; rc/h; alpha; ra/h],1,N); sd];
+ypred = net(xpred);
+Ex_pred = ypred(1,:)*(V0/h);
+Ey_pred = ypred(2,:)*(V0/h);
+test_mag = sqrt(Ex_pred.^2 + Ey_pred.^2);
 
-figure()
+figure(1)
 subplot(1,2,1);
 plot(s/s(end),Ex,'-k');
 hold on;
-plot(sd,ypred(1,:)*(V0/lchar),'--r');
+plot(sd,Ex_pred,'--r');
 xlabel('Distance along emitter [\%]','Interpreter','latex');
 ylabel('$E_x$','Interpreter','latex')
+legend('Truth','Surrogate')
 subplot(1,2,2);
 plot(s/s(end),Ey,'-k');
 hold on;
-plot(sd,ypred(2,:)*(V0/lchar),'--r');
+plot(sd,Ey_pred,'--r');
 xlabel('Distance along emitter [\%]','Interpreter','latex');
 ylabel('$E_y$','Interpreter','latex')
+legend('Truth','Surrogate')
 
-figure()
+figure(2)
 plot(s/s(end), t_mag,'-k');
 hold on;
-plot(sd,pred_mag,'--r');
+plot(sd,test_mag,'--r');
 xlabel('Distance along emitter [\%]','Interpreter','latex');
 ylabel('Electric field magnitude $\left[ \frac{V}{m} \right]$','Interpreter','latex');
 legend('Simulation','Surrogate');
 
-% Parameter study on d
-ds = linspace(min(f.data(1:nsamples,1)),max(f.data(1:nsamples,1)),N);
-[xg,yg] = meshgrid(sd,ds);
-pts = [xg(:) yg(:)]';
-in = zeros(5,size(pts,2));
-in(1,:) = pts(2,:)/lchar;
-in(2,:) = rc/lchar;
-in(3,:) = alpha;
-in(4,:) = ra/lchar;
-in(5,:) = pts(1,:);
-ypred = net(in);
-pred_mag = sqrt(ypred(1,:).^2 + ypred(2,:).^2)*(V0/lchar);
-pred_grid = reshape(pred_mag,size(xg));
-figure()
-h = surf(xg,yg,pred_grid);
-set(h,'edgecolor','none');
-colormap hot
-xlabel('Distance along emitter (s)');
-ylabel('Tip-to-extractor distance (d)');
-zlabel('Electric field magnitude (V/m)');
-
 %% Plot training results
-figure()
-semilogy(tr.epoch,tr.perf,'-r','LineWidth',3);
+figure(3)
+semilogy(perf(1,:),'-r','LineWidth',3);
 hold on;
-semilogy(tr.epoch,tr.vperf,'-b','LineWidth',1.5);
-semilogy(tr.epoch,tr.tperf,'-g','LineWidth',1);
+semilogy(perf(2,:),'-b','LineWidth',1.5);
+semilogy(perf(3,:),'-g','LineWidth',1);
 leg = legend('Training','Validation','Test');
 set(leg,'Interpreter','latex');
-xlabel('Epoch','interpreter','latex');
+xlabel('Iteration','interpreter','latex');
 ylabel('Mean squared-error (MSE)','interpreter','latex');
 set(gcf,'color','white');
-xlim([0 500]);
+
+%% Loop over and view test set
+% View sampling distribution
+figure(4);
+subplot(5,1,1);
+histogram(f.data(:,1)*1e6,'Normalization','probability');
+xlabel('d [$\mu$m]','Interpreter','latex');
+subplot(5,1,2);
+histogram(f.data(:,2)*1e6,'Normalization','probability');
+xlabel('$r_c$ [$\mu$m]','Interpreter','latex');
+subplot(5,1,3);
+histogram(f.data(:,3),'Normalization','probability');
+xlabel('$\alpha$ [deg]','Interpreter','latex');
+subplot(5,1,4);
+histogram(f.data(:,4)*1e6,'Normalization','probability');
+xlabel('$h$ [$\mu$m]','Interpreter','latex');
+subplot(5,1,5);
+histogram(f.data(:,5)*1e6,'Normalization','probability');
+xlabel('$r_a$ [$\mu$m]','Interpreter','latex');
+set(gcf,'Position',[200 800 400 700])
+
+% Get unique geometry test samples (by column, only rows 1-4)
+[xunique, ind, ~] = uniquetol(xtest(1:4,:)',1e-6,'ByRows',true);
+xtest = xunique';
+ytest = ytest(:,ind);
+
+% Down-select
+xtest = xtest(:,1:200:end);
+ytest = ytest(:,1:200:end);
+
+
+%%% COMMENT/UNCOMMENT to Use separate test files instead
+fd = importdata('../../data/feasible/test/samples/samples.txt');
+hvec = fd.data(:,4);
+xtest = [fd.data(:,1:2), fd.data(:,3)*(pi/180), fd.data(:,5)]';
+
+figure(5)
+set(gcf,'Position',[700 800 600 500])
+
+for i = 1:length(xtest)
+    
+    params = xtest(:,i); % use the mean height h
+%     d = params(1)*h;
+%     rc = params(2)*h;
+%     alpha = params(3);
+%     ra = params(4)*h;
+    d = params(1);
+    rc = params(2);
+    alpha = params(3);
+    ra = params(4);
+    h = hvec(i);
+    
+    emitter = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0);
+    [x,y,s,Ex,Ey] = EPOST.emitter_solution(emitter);
+    t_mag = sqrt(Ex.^2 + Ey.^2);
+
+    xpred = [repmat([d/h; rc/h; alpha; ra/h],1,N); sd];
+    ypred = net(xpred);
+    Ex_pred = ypred(1,:)*(V0/h);
+    Ey_pred = ypred(2,:)*(V0/h);
+    test_mag = sqrt(Ex_pred.^2 + Ey_pred.^2);
+
+    fprintf('Case = %d d = %.3E rc = %.3E alpha = %.2f ra = %.3E\n',i, d, rc, alpha*(180/pi), ra);
+    figure(5)
+    subplot(1,2,1);
+    plot(s/s(end),Ex,'-k');
+    hold on;
+    plot(sd,Ex_pred,'--r');
+    hold off;
+    xlabel('Distance along emitter [\%]','Interpreter','latex');
+    ylabel('$E_x$','Interpreter','latex')
+    subplot(1,2,2);
+    plot(s/s(end),Ey,'-k');
+    hold on;
+    plot(sd,Ey_pred,'--r');
+    xlabel('Distance along emitter [\%]','Interpreter','latex');
+    ylabel('$E_y$','Interpreter','latex')
+    hold off;
+
+    figure(4)
+    subplot(5,1,1);
+    hold on;
+    ah = xline(d*1e6,'-r','LineWidth',2);
+    hold off;
+    subplot(5,1,2);
+    hold on;
+    bh = xline(rc*1e6,'-r','LineWidth',2);
+    hold off;
+    subplot(5,1,3);
+    hold on;
+    ch = xline(alpha*(180/pi),'-r','LineWidth',2);
+    hold off;
+    subplot(5,1,4);
+    hold on;
+    dh = xline(h*1e6,'-r','LineWidth',2);
+    hold off;
+    subplot(5,1,5);
+    hold on;
+    eh = xline(ra*1e6,'-r','LineWidth',2);
+    hold off;
+
+    waitforbuttonpress
+    delete(ah);
+    delete(bh);
+    delete(ch);
+    delete(dh);
+    delete(eh);
+end
+
+%% Test scaling (same dimensionless inputs, different geometry)
+des1 = [100e-6, 25e-6, 0.8, 250e-6, 125e-6]; % [d,rc,alpha (rad), h, ra];
+des2 = [200e-6, 50e-6, 0.8, 500e-6, 250e-6];
+des3 = [129e-6, 32.25e-6, 0.8, 322.5e-6, 161.25e-6];
+
+emitter1 = Emitter(des1(1),des1(2),des1(3),des1(4),des1(5),extractor_thickness,V0);
+[~,~,s1,Ex1,Ey1] = EPOST.emitter_solution(emitter1);
+emitter2 = Emitter(des2(1),des2(2),des2(3),des2(4),des2(5),extractor_thickness,V0);
+[~,~,s2,Ex2,Ey2] = EPOST.emitter_solution(emitter2);
+emitter3 = Emitter(des3(1),des3(2),des3(3),des3(4),des3(5),extractor_thickness,V0);
+[~,~,s3,Ex3,Ey3] = EPOST.emitter_solution(emitter3);
+
+xparam = [0.4; 0.1; 0.8; 0.5];
+xpred = [repmat(xparam,1,N); sd];
+ypred = net(xpred);
+Ex_pred = ypred(1,:);
+Ey_pred = ypred(2,:);
+
+figure()
+subplot(3,2,1)
+plot(s1/s1(end),Ex1,'-k');
+hold on;
+plot(sd,Ex_pred*(V0/des1(4)),'--r');
+xlabel('s [\%]','Interpreter','latex');
+ylabel('Design 1: $E_x$','Interpreter','latex')
+subplot(3,2,2);
+plot(s1/s1(end),Ey1,'-k');
+hold on;
+plot(sd,Ey_pred*(V0/des1(4)),'--r');
+xlabel('s [\%]','Interpreter','latex');
+ylabel('$E_y$','Interpreter','latex')
+
+subplot(3,2,3)
+plot(s2/s2(end),Ex2,'-k');
+hold on;
+plot(sd,Ex_pred*(V0/des2(4)),'--r');
+xlabel('s [\%]','Interpreter','latex');
+ylabel('Design 2: $E_x$','Interpreter','latex')
+subplot(3,2,4);
+plot(s2/s2(end),Ey2,'-k');
+hold on;
+plot(sd,Ey_pred*(V0/des2(4)),'--r');
+xlabel('s [\%]','Interpreter','latex');
+ylabel('$E_y$','Interpreter','latex')
+
+subplot(3,2,5)
+plot(s3/s3(end),Ex3,'-k');
+hold on;
+plot(sd,Ex_pred*(V0/des3(4)),'--r');
+xlabel('s [\%]','Interpreter','latex');
+ylabel('Design 3: $E_x$','Interpreter','latex')
+subplot(3,2,6);
+plot(s3/s3(end),Ey3,'-k');
+hold on;
+plot(sd,Ey_pred*(V0/des3(4)),'--r');
+xlabel('s [\%]','Interpreter','latex');
+ylabel('$E_y$','Interpreter','latex')
+
+%% Parameter study on d
+% ds = linspace(min(f.data(1:nsamples,1)),max(f.data(1:nsamples,1)),N);
+% [xg,yg] = meshgrid(sd,ds);
+% pts = [xg(:) yg(:)]';
+% in = zeros(5,size(pts,2));
+% in(1,:) = pts(2,:)/lchar;
+% in(2,:) = rc/lchar;
+% in(3,:) = alpha;
+% in(4,:) = ra/lchar;
+% in(5,:) = pts(1,:);
+% ytest = net(in);
+% test_mag = sqrt(ytest(1,:).^2 + ytest(2,:).^2)*(V0/lchar);
+% pred_grid = reshape(test_mag,size(xg));
+% figure()
+% h = surf(xg,yg,pred_grid);
+% set(h,'edgecolor','none');
+% colormap hot
+% xlabel('Distance along emitter (s)');
+% ylabel('Tip-to-extractor distance (d)');
+% zlabel('Electric field magnitude (V/m)');
 
 %% Old
 % N1 = 100;

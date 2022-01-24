@@ -5,11 +5,10 @@ classdef EmitterMS < EmitterSim
     end
 
     methods
-        function self = EmitterMS(d, rc, alpha, h, ra, te, ms)
-            V0 = 1000; % [V]
-            self = self@EmitterSim(d, rc, alpha, h, ra, te, V0, ms);
-            v_edges = [1,2,3];    % Edge numbers with applied bias voltage
-            z_edges = [5];  % Edge numbers with 0V bias (extractor)
+        function self = EmitterMS(d, rc, alpha, h, ra, te, V0)
+            self = self@EmitterSim(d, rc, alpha, h, ra, te, V0);
+            v_edges = [1,2,3];  % Edge numbers with applied bias voltage
+            z_edges = [5];      % Edge numbers with 0V bias (extractor)
             self.e_edges = [1,2];
             geo = self.constructGeometry();
             self.solve(geo, v_edges, z_edges);
@@ -21,7 +20,7 @@ classdef EmitterMS < EmitterSim
             curve_x_delta = self.rc*cos(self.alpha);            % curved edge x-delta [m]
             h_cone = self.h - curve_y_delta;                    % height of emitter cone [m]
             rb = curve_x_delta + h_cone*tan(self.alpha);        % Emitter base radius [m]
-            x_max = rb * 1.5;                                     % Scene x boundary
+            x_max = rb * 1.5;                                   % Scene x boundary
         
             % Emitter points [X,Y] : (0,0) is below emitter tip
             E1 = [0 self.d];

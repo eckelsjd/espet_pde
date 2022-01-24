@@ -60,20 +60,17 @@ classdef EPOST
             Ey = emitter.emagresults.ElectricField.Ey(emitter_nodes)';
         end
 
-        function [x,z,Ex, Ey] = ms_solution(hyperboloid)
-            rc = hyperboloid.rc; d = hyperboloid.d; V0 = hyperboloid.V0;
+        function [ypoints, Ex, Ey] = ms_solution(rc, d, V0, xpoints)
             H0 = 1/rc;
             eta0 = sqrt( (H0*d)/(H0*d + 1) );
             a = d * sqrt( (H0*d + 1)/(H0*d) );
-            [r_coord, ~, ~,~,~] = EPOST.emitter_solution(hyperboloid);
-            xi_coord = sqrt(1 + (r_coord/(a*sqrt(1-eta0^2))).^2);
+            xi_coord = sqrt(1 + (xpoints/(a*sqrt(1-eta0^2))).^2);
             e_premult = V0/(a*atanh(eta0));
             r_premult = (eta0./(xi_coord.^2 - eta0^2)) .* sqrt((xi_coord.^2 - 1)/(1-eta0^2));
             z_premult = xi_coord ./ (xi_coord.^2 - eta0^2);
             Ex = e_premult*r_premult;
             Ey = e_premult*(-z_premult);
-            x = r_coord;
-            z = a*xi_coord*eta0;
+            ypoints = a*xi_coord*eta0;
         end
 
         function h = pdeplot(emitter)
@@ -117,6 +114,7 @@ classdef EPOST
             figure()
             subplot(1,2,1);
             EPOST.pdemesh(emitter);
+            box off
             subplot(1,2,2);
             EPOST.pdeplot(emitter);
         end

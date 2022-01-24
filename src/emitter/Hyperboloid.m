@@ -3,13 +3,11 @@ classdef Hyperboloid < EmitterSim
         v_edges;
         z_edges;
         e_edges;
-        right_sf; % scale factor for right BC location
     end
 
     methods
-        function self = Hyperboloid(d, rc, alpha, h, ra, te, V0, ms, right_sf)
-            self = self@EmitterSim(d, rc, alpha, h, ra, te, V0, ms);
-            self.right_sf = right_sf;
+        function self = Hyperboloid(d, rc, alpha, h, ra, te, V0)
+            self = self@EmitterSim(d, rc, alpha, h, ra, te, V0);
             geo = self.constructGeometry(); % needs to set v,z,e edges
             self.solve(geo, self.v_edges, self.z_edges);
         end
@@ -61,7 +59,7 @@ classdef Hyperboloid < EmitterSim
             E(:,5) = y_coord(2:N+1);
             E(:,6) = 0;
             E(:,7) = 1;
-            x_max = E3(1) * self.right_sf;   % Scene x boundary
+            x_max = E3(1) * 1.5;   % Scene x boundary
             E3(2) = max(y_coord);
            
             % Bounding box (scene) points

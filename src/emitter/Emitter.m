@@ -5,8 +5,8 @@ classdef Emitter < EmitterSim
     end
 
     methods
-        function self = Emitter(d, rc, alpha, h, ra, te, V0, ms)
-            self = self@EmitterSim(d, rc, alpha, h, ra, te, V0, ms);
+        function self = Emitter(d, rc, alpha, h, ra, te, V0)
+            self = self@EmitterSim(d, rc, alpha, h, ra, te, V0);
             v_edges = [1,2,3];    % Edge numbers with applied bias voltage
             z_edges = [5,6,7,9];  % Edge numbers with 0V bias (extractor)
             self.e_edges = [1,2];
@@ -15,10 +15,11 @@ classdef Emitter < EmitterSim
         end
 
         function geo = constructGeometry(self)
-%             far_field_location = min(0,self.d) - (self.h) - self.te;
+
             % move far field location as log function of h (slow-growing)
             h_factor = max(0,log10(self.h/(self.te))/2);
             far_field_location = min(0,self.d) - 4*self.te - h_factor*self.h;
+            % far_field_location = min(0,self.d) - (self.h) - self.te;
             sf = 1.5; % right BC scale factor
            
             % Calculated values
