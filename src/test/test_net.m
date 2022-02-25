@@ -19,6 +19,8 @@ ra = params(5);
 extractor_thickness = 76*10^(-6);
 V0 = 1000;
 
+d = 3e-6; rc = 1.5e-5; alpha = 2.678e-1; h = 3.018e-4; ra = 2.486e-4;
+
 % Simulation prediction
 emitter = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0);
 [x,y,s,Ex,Ey] = EPOST.emitter_solution(emitter);

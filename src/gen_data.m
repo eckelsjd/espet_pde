@@ -5,7 +5,7 @@ clear all;
 close all;
 clc;
 addpath('./emitter/');
-data_dir = '../data/feasible/';
+data_dir = '../data/base/';
 files = dir(fullfile(data_dir,'sims'));
 prefix = 'train';
 
@@ -14,7 +14,7 @@ prefix = 'train';
 % [~, yg] = FGSR.compute_grid(A,b,c,0,1);
 
 %% Save in most general-use format (train_base.mat)
-Nmax = 345; % 0
+Nmax = 571; % 345
 % Find largest s dimension
 % for ii = 1:length(files)
 %     if files(ii).isdir
@@ -77,8 +77,9 @@ for ii = 1:length(files)
 %     save(fname,'xtrain','ytrain');
 end
 
-% Save 
-save(fullfile(data_dir, prefix, 'train_base.mat'),'xtrain','ytrain');
+% Save
+V0 = emitter.V0;
+save(fullfile(data_dir, prefix, 'train_base.mat'),'xtrain','ytrain', 'V0');
 
 %% Save in feedforward net format (train_ffnet.mat)
 % Loop over all training data
@@ -112,11 +113,10 @@ save(fullfile(data_dir,'train','train_ffnet.mat'),"xdata","ydata");
 %% Save in dimensionless feedforward net format (train_dffnet.mat)
 % Loop over all training data
 file = fullfile(data_dir,'train','train_base.mat');
-load(file); % gives xtrain and ytrain
+load(file); % gives xtrain, ytrain, and V0
 Nsamples = length(xtrain);
 xdata = zeros(5,1);
 ydata = zeros(2,1);
-V0 = 1000;
 
 for ii = 1:Nsamples
     % Get number of discrete points for each sample

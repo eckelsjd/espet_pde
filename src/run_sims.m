@@ -4,10 +4,10 @@ clear all;
 close all;
 clc;
 addpath('./emitter/');
-data_dir = '../data/feasible/test';
+data_dir = '../data/base/';
 samples_file = fullfile(data_dir,'samples','samples.txt');
-json_input = fullfile(data_dir,'..','sampler_input.json');
-prefix = 'esimtest';
+json_input = fullfile(data_dir,'sampler_input.json');
+prefix = 'esimbase';
 
 %% Data import
 % Get simulation parameters (extractor thickness, bias voltage, mesh size)
@@ -32,6 +32,11 @@ for ii = 1:nsamples
     h = curr_geo(4); ra = curr_geo(5);
 
     emitter = Emitter(d,rc,alpha,h,ra,te,V0);
+
+%     EPOST.solplot(emitter)
+%     waitforbuttonpress
+%     close all;
+
     fname = EPOST.get_filename(d, rc, curr_geo(3), h, ra, prefix);
     fulldir = fullfile(data_dir,'sims',fname);
     save(fulldir,'emitter');

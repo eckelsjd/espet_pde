@@ -3,4 +3,4 @@
 *.pkl
 *.txt
 *.asv
-.ipynb_checkpoints
+/.ipynb_checkpoints

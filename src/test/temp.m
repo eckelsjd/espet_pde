@@ -4,9 +4,10 @@ close all;
 clc;
 addpath('../emitter')
 addpath('..')
-load('../../data/feasible/models/model_dffnet.mat');
+% load('../../data/feasible/models/model_dffnet.mat');
 % load('../../data/feasible/model_tr.mat');
 f = importdata('../../data/feasible/samples/samples.txt');
+fb = importdata('../../data/base/samples/samples.txt');
 
 % nbins = 10;
 h = figure();

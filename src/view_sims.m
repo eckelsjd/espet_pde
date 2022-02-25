@@ -1,8 +1,8 @@
 clear all;
 close all;
 clc;
-addpath('.\emitter\');
-data_dir = '..\data\feasible\';
+addpath('./emitter/');
+data_dir = '../data/base';
 files = dir(fullfile(data_dir,'sims'));
 
 % Loop over all training data

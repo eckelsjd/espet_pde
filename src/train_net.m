@@ -109,6 +109,12 @@ end
 perf = perf(:,2:end);
 xtest = xdata(:,testInd);
 ytest = ydata(:,testInd);
+IW = net.IW;
+LW = net.LW;
+bias = net.b;
+input_params = net.inputs{1}.processSettings{1};
+output_params = net.output.processSettings{1};
 save(fullfile(data_dir,'models','model_dffnet.mat'),'net','perf','xtest','ytest','trainBS',...
     'iter_per_batch','epochs','num_batches','trainRatio','valRatio','testRatio');
+save(fullfile(data_dir, 'models','dffnet_weights.mat'),'IW','LW','bias','input_params','output_params');
 % exportONNXNetwork(net,fullfile(data_dir,'models','model_dffnet.onnx'));

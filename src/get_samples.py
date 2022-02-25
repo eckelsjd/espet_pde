@@ -25,7 +25,7 @@ def load_all_pickle_files(dirpath):
 
 
 if __name__ == '__main__':
-    sdir = Path('../data/feasible/test/samples')
+    sdir = Path('../data/base/samples')
     sfile = sdir / 'samples.txt'
     fd = open(sfile, 'w')
     fd.write('d rc alpha h ra\n')
