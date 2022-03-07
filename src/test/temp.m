@@ -28,3 +28,15 @@ histogram(f.data(:,1)*1000,'Normalization','probability');
 xlabel('$r_a$ [mm]','Interpreter','latex');
 
 set(gcf,'Position',[200 800 400 700]);
+
+%% Distribution of electric field
+close all;
+clear all;
+clc;
+addpath('../emitter/');
+addpath('..');
+data_dir = '../../data/base/';
+file = fullfile(data_dir,'train','train_dffnet_max.mat');
+load(file);
+histogram(ydata,'Normalization','pdf');
+xlabel('$\tilde{E}_{max}$','Interpreter','latex');

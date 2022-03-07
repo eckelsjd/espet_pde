@@ -27,6 +27,9 @@ samples = datastruct.data;
 
 %% Run simulations
 for ii = 1:nsamples
+    if mod(ii, 100) == 0
+        fprintf('Iteration: %i\n',ii)
+    end
     curr_geo = samples(ii,:);
     d = curr_geo(1); rc = curr_geo(2); alpha = curr_geo(3)*(pi/180);
     h = curr_geo(4); ra = curr_geo(5);
