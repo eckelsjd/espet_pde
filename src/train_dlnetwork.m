@@ -8,16 +8,12 @@ file = fullfile('../data/base/train/train_base.mat');
 load(file);
 %% Load data
 data_dir = '../data/feasible/';
-file = fullfile(data_dir,'train','train_dffnet.mat');
+file = fullfile(data_dir,'train','train_dffnet_max.mat');
 load(file);
 
 % Pre-process
 [xn, xs] = mapminmax(xdata, -1, 1);
 [yn, ys] = mapminmax(ydata, -1, 1);
-
-% [yn1, ys1] = mapminmax(ydata(1,:), 0, 1);
-% [yn2, ys2] = mapminmax(ydata(2,:), -1, 0);
-% yn = [yn1; yn2];
 
 % Split train/val/test sets
 Ndata = size(xn,2);
@@ -36,27 +32,19 @@ xTest = xn(:,idxTest);   yTest = yn(:,idxTest);
 
 %% Set up network
 layers = [
-    featureInputLayer(5,"Name","featureinput")
-    fullyConnectedLayer(34,"Name","fc_1")
-    tanhLayer("Name","tanh_1")
-    fullyConnectedLayer(30,"Name","fc_2")
-    tanhLayer("Name","tanh_2")
-    fullyConnectedLayer(26,"Name","fc_3")
-    tanhLayer("Name","tanh_3")
-    fullyConnectedLayer(22,"Name","fc_4")
-    tanhLayer("Name","tanh_4")
-    fullyConnectedLayer(18,"Name","fc_5")
-    tanhLayer("Name","tanh_5")
-    fullyConnectedLayer(14,"Name","fc_6")
-    tanhLayer("Name","tanh_6")
+    featureInputLayer(4,"Name","featureinput")
+%     fullyConnectedLayer(18,"Name","fc_5")
+%     tanhLayer("Name","tanh_5")
+%     fullyConnectedLayer(14,"Name","fc_6")
+%     tanhLayer("Name","tanh_6")
     fullyConnectedLayer(10,"Name","fc_7")
     tanhLayer("Name","tanh_7")
-    fullyConnectedLayer(6,"Name","fc_8")
+    fullyConnectedLayer(5,"Name","fc_8")
     tanhLayer("Name", "tanh_8")
-    fullyConnectedLayer(2,"Name","fc_9")
+    fullyConnectedLayer(1,"Name","fc_9")
     regressionLayer("Name","regressionoutput")];
 
-miniBatchSize = 2^14;
+miniBatchSize = 1024;
 options = trainingOptions('adam', ...
     'MiniBatchSize',miniBatchSize, ...
     'InitialLearnRate', 0.001, ... % default
@@ -83,8 +71,6 @@ options = trainingOptions('adam', ...
 % 2. Normalization over large design space
 % 3. mini batch size and learning rate tuning
 % 1. Conv 1D for spatial s dimension? or reduce number of s points
-% Load data in datastore if data too big
-% 4. More samples of large design space
 
 %% Train network
 % Features: Ndata x Nfeatures

@@ -140,3 +140,35 @@ end
 xdata = xdata(:,2:end);
 ydata = ydata(:,2:end);
 save(fullfile(data_dir,'train','train_dffnet.mat'),"xdata","ydata");
+
+%% Save in dimensionless feedforward net format (train_dffnet_max.mat)
+% but for EMAX only
+% Loop over all training data
+file = fullfile(data_dir,'train','train_base.mat');
+load(file); % gives xtrain, ytrain, and V0
+Nsamples = length(xtrain);
+xdata = zeros(4,Nsamples);
+ydata = zeros(1,Nsamples);
+
+for ii = 1:Nsamples
+    % Get number of discrete points for each sample
+    ycurr = ytrain(:,:,ii);
+    ycurr = ycurr(~isnan(ycurr)); % ycurr = [s, Ex, Ey]
+    Ncurr = length(ycurr)/3;
+    ycurr = reshape(ycurr,[Ncurr,3]);
+    Ex = ycurr(:,2); Ey = ycurr(:,3);
+    Emag = sqrt(Ex.^2 + Ey.^2);
+    [Emax, idx] = max(Emag);
+%     Ex_max = Ex(idx);
+%     Ey_max = Ey(idx);
+
+    % Nondimensionalize
+    h = xtrain(4,1,ii);
+    x = [xtrain(1:3,:,ii) ./ [h;h;1]; xtrain(5,:,ii) / h];
+    y = Emax / (V0/h);
+
+    % Save training data to array
+    xdata(:,ii) = x;
+    ydata(ii) = y;
+end
+save(fullfile(data_dir,'train','train_dffnet_max.mat'),"xdata","ydata");
