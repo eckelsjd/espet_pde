@@ -6,7 +6,7 @@ clear all;
 close all;
 clc;
 addpath('./emitter/');
-data_dir = '../data/feasible/';
+data_dir = '../data/base/';
 file = fullfile(data_dir,'train','train_dffnet.mat');
 load(file);
 
