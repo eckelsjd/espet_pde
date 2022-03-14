@@ -9,7 +9,8 @@ def main():
     test_data = np.loadtxt('geometry_samples.txt', skiprows=1)
     test_data[:, 2] = test_data[:, 2] * (np.pi / 180)  # convert to radians
 
-    E_max = forward(test_data.T)
+    # input to forward() shape = (Nfeatures, Nsamples), where Nfeatures = 5
+    E_max = forward(test_data.T)  # E_max.shape = (Nsamples,)
     plt.hist(E_max, density=True, bins=50, edgecolor='black')
     plt.show()
 

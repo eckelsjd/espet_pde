@@ -45,9 +45,9 @@ def mapminmax(x, xmin, xmax, ymin, ymax, direction='Forward'):
     if direction == 'Forward':
         # Apply the mapping x -> xnorm
         Ni, Nd = x.shape
-        xmin_tile = np.tile(xmin, (1,Nd))
-        xmax_tile = np.tile(xmax, (1,Nd))
-        xnorm = np.divide((x - xmin_tile),(xmax_tile-xmin_tile))*(ymax-ymin) + ymin
+        xmin_tile = np.tile(xmin, (1, Nd))
+        xmax_tile = np.tile(xmax, (1, Nd))
+        xnorm = np.divide((x - xmin_tile), (xmax_tile-xmin_tile))*(ymax-ymin) + ymin
         return xnorm
     elif direction == 'Reverse':
         # Undo the mapping y -> ynorm (equivalently, apply the mapping ynorm -> y)
@@ -55,8 +55,8 @@ def mapminmax(x, xmin, xmax, ymin, ymax, direction='Forward'):
         ynorm = x  # raw network output is already normalized
         ynorm_min = ymin
         ynorm_max = ymax
-        ymin_tile = np.tile(xmin,(1,Nd))
-        ymax_tile = np.tile(xmax,(1,Nd))
+        ymin_tile = np.tile(xmin, (1, Nd))
+        ymax_tile = np.tile(xmax, (1, Nd))
         ratio = (ynorm - ynorm_min)/(ynorm_max-ynorm_min)
         y = np.multiply(ratio, (ymax_tile - ymin_tile)) + ymin_tile
         return y
@@ -73,6 +73,15 @@ def forward(x, net_file='esi_surrogate.onnx', data_file=None, V0=V0_DEFAULT):
     :param V0: (Nsamples,) or (1,) bias voltage for each geometry. If size is (1,), same bias applied to all geometries
     :return (1, Nsamples) E_max [V/m] predictions for each of the Nsamples geometry inputs
     """
+    # Check dimensions of input x
+    x = np.atleast_1d(np.squeeze(x))
+    if len(x.shape) == 1:
+        Ninputs = x.shape[0]
+        x = x[:, np.newaxis]  # Add new axis for single geometry sample
+    else:
+        Ninputs, Nsamples = x.shape
+    assert Ninputs == 5
+
     # NONDIMENSIONALIZE
     d = x[0, :]       # Tip-to-extractor distance [m]
     rc = x[1, :]      # Radius of curvature [m]
