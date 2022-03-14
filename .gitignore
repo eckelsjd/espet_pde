@@ -1,7 +1,14 @@
 *.mat
-/.idea
 *.pkl
 *.txt
 *.asv
+*.onnx
+*.fig
+
+/.idea
 /.ipynb_checkpoints
 /src/.ipynb_checkpoints
+/src/postproc/.ipynb_checkpoints
+
+# Include all files in surrogate example
+!surrogate_example/*

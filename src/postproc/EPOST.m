@@ -110,8 +110,8 @@ classdef EPOST
             h = gca;
         end
 
-        function solplot(emitter)
-            figure()
+        function fig = solplot(emitter)
+            fig = figure();
             subplot(1,2,1);
             EPOST.pdemesh(emitter);
             box off

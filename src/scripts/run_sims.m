@@ -3,11 +3,12 @@
 clear all;
 close all;
 clc;
-addpath('./emitter/');
-data_dir = '../data/base/';
-samples_file = fullfile(data_dir,'samples','samples.txt');
-json_input = fullfile(data_dir,'sampler_input.json');
-prefix = 'esimbase';
+dataset = 'base'; % base or feasible dataset
+addpath('../emitter/');
+data_dir = '../../data';
+samples_file = fullfile(data_dir, dataset,'samples','samples.txt');
+json_input = fullfile(data_dir, dataset, 'sampler_input.json');
+prefix = 'esim';
 
 %% Data import
 % Get simulation parameters (extractor thickness, bias voltage, mesh size)
@@ -41,6 +42,6 @@ for ii = 1:nsamples
 %     close all;
 
     fname = EPOST.get_filename(d, rc, curr_geo(3), h, ra, prefix);
-    fulldir = fullfile(data_dir,'sims',fname);
+    fulldir = fullfile(data_dir, dataset, 'sims',fname);
     save(fulldir,'emitter');
 end
