@@ -12,3 +12,4 @@
 
 # Include all files in surrogate example
 !surrogate_example/*
+!requirements.txt
