@@ -17,9 +17,9 @@ classdef Emitter < EmitterSim
         function geo = constructGeometry(self)
 
             % move far field location as log function of h (slow-growing)
-            h_factor = max(0,log10(self.h/(self.te))/2);
-            far_field_location = min(0,self.d) - 4*self.te - h_factor*self.h;
-            % far_field_location = min(0,self.d) - (self.h) - self.te;
+%             h_factor = max(0,log10(self.h/(self.te))/2);
+%             far_field_location = min(0,self.d) - 4*self.te - h_factor*self.h;
+            far_field_location = min(0,self.d) - 4*self.te - 1.5*self.ra;
             sf = 1.5; % right BC scale factor
            
             % Calculated values

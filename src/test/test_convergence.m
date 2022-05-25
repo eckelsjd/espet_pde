@@ -4,7 +4,7 @@ clear all;
 close all;
 clc;
 addpath('..\emitter')
-addpath('..')
+addpath('..\postproc')
 
 %% AFET-2 design
 d = 5*10^(-6);
@@ -33,57 +33,64 @@ V0 = 1000;
 % Reference solution
 % mesh_ref = 5*10^(-3);
 % hyper_ref = Hyperboloid(d,rc,alpha,h,ra,extractor_thickness,mesh_ref);
-% emitter_ref = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0, mesh_ref);
-load afet_ref_emitter.mat
+emitter_ref = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0);
+% load afet_ref_emitter.mat
 % [xref, yref, sref, Exref, Eyref] = EPOST.emitter_solution(emitter_ref);
 % emitter = Emitter(d,rc,alpha,h,ra,extractor_thickness,V0,2e-06);
 % [ex, ey, es, eEx,eEy] = EPOST.emitter_solution(emitter);
 % e_sol = sqrt(eEx.^2 + eEy.^2);
-[r,z,E_r, E_z] = EPOST.ms_solution(emitter_ref);
-ref_Emag = sqrt(E_r.^2 + E_z.^2);
+xpoints = 0;
+[ypoints, Ex, Ey] = EPOST.ms_solution(rc, d, V0, xpoints);
+ref_Emag = sqrt(Ex.^2 + Ey.^2);
 % ref_sol = sqrt(Exref.^2 + Eyref.^2);
 
 % Simulation
 % ref_sol = smooth(ref_sol);
 % ms = [5e-7, 8e-7, 1e-6, 2e-6, 3e-6, 7e-6, 1e-5, 5e-5];
-ms = [5e-7];
+ms = [1e-7, 3e-7, 5e-7, 8e-7, 2e-6, 3e-6, 5e-6, 1e-5];
+% ms = [5e-7];
 plotColors = jet(length(ms));
-rmse = zeros(size(ms));
+% rmse = zeros(size(ms));
+etip = zeros(size(ms));
 figure()
 set(gcf,'color','white');
 for ii = 1:length(ms)
-    e = Hyperboloid(d,rc,alpha,h,ra,extractor_thickness,V0, ms(ii), 2);
+    e = Hyperboloid(d,rc,alpha,h,ra,extractor_thickness,V0, ms(ii));
     [hx,hy,hs,hEx,hEy] = EPOST.emitter_solution(e);
     h_Emag = sqrt(hEx.^2 + hEy.^2);
+    etip(ii) = h_Emag(1);
 %     ref_interp = interp1(xref, ref_sol, hx);
 %     rmse(ii) = sqrt(mean((h_Emag - ref_interp).^2));
 %     plot(hx, h_Emag,'Color', plotColors(ii,:));
-    plot(hx, h_Emag,'--r');
-    hold on
+%     plot(hx, h_Emag,'--r');
+%     hold on
 end
-plot(r, ref_Emag, '-k');
-xlabel('X [m]','Interpreter','latex');
-ylabel('$|\vec{E}|$ [V/m]', 'Interpreter','latex');
-legend('Simulation','Analytical')
+% plot(r, ref_Emag, '-k');
+% xlabel('X [m]','Interpreter','latex');
+% ylabel('$|\vec{E}|$ [V/m]', 'Interpreter','latex');
+% legend('Simulation','Analytical')
 % EPOST.solplot(emitter_ref);
-EPOST.solplot(e);
+% EPOST.solplot(e);
 
 % figure()
 % semilogx(ms, rmse, '-ok');
 % xlabel('Mesh size [m]','Interpreter','latex')
 % ylabel('RMSE with reference simulation', 'Interpreter','latex');
 
-% figure()
-% semilogx(ms, etip,'ok');
-% hold on;
-% yline(ref_Emag(1),'-r');
-% yline(ref_Emag(1)*0.99,'--r');
-% yline(ref_Emag(1)*1.01,'--r');
-% yline(ref_Emag(1)*0.95,'--b');
-% yline(ref_Emag(1)*1.05,'--b');
-% xlabel('Mesh size [m]','Interpreter','latex')
-% ylabel('$E_{tip}$ [V/m]','Interpreter','latex');
-% legend('Simulation', 'Analytical','1% bound');
+figure()
+semilogx(ms, etip,'ok');
+hold on;
+yline(ref_Emag,'-r');
+yline(ref_Emag*0.99,'--r');
+yline(ref_Emag*1.01,'--r');
+yline(ref_Emag*0.95,'--b');
+yline(ref_Emag*1.05,'--b');
+xlabel('Mesh size [m]','Interpreter','latex')
+ylabel('$|\vec{E}|_{tip}$ [V/m]','Interpreter','latex');
+leg = legend('Simulation', 'Analytical','$1\%$ bound','','$5\%$ bound');
+set(leg,'Interpreter','latex');
+ylim([etip(end)*0.95, ref_Emag*1.2])
+xlim([ms(1)*0.97, ms(end)*1.03]);
 
 % 1% Converged mesh
 % mesh_size = 5e-7;

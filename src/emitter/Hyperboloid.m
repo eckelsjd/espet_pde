@@ -6,8 +6,9 @@ classdef Hyperboloid < EmitterSim
     end
 
     methods
-        function self = Hyperboloid(d, rc, alpha, h, ra, te, V0)
+        function self = Hyperboloid(d, rc, alpha, h, ra, te, V0, mesh_size)
             self = self@EmitterSim(d, rc, alpha, h, ra, te, V0);
+            self.ms = mesh_size; % Override EmitterSim
             geo = self.constructGeometry(); % needs to set v,z,e edges
             self.solve(geo, self.v_edges, self.z_edges);
         end

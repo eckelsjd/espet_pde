@@ -69,12 +69,15 @@ classdef (Abstract) EmitterSim < handle
             iter = 1;
             while bad_mesh
                 if iter > 10
-                    error('Could not fix mesh :(\n');
+%                     error('Could not fix mesh :(');
+                    throw(MException('EmitterSim:badMesh', 'Poor mesh quality'))
                 end
                 % THIS BREAKS FOR HYPERBOLOID.m DISCRETIZATION
                 generateMesh(self.emagmodel, 'Hmax', ms_max, 'Hgrad',...
                     growth_rate, 'Hedge', {[self.e_edges(1)], self.ms, ...
                     [self.e_edges(2:end)], (self.ms+ms_max)/2});
+%                 generateMesh(self.emagmodel, 'Hmax', ms_max, 'Hgrad',...
+%                     growth_rate, 'Hedge', {[self.e_edges(1:end)], self.ms});
 %                 generateMesh(self.emagmodel, 'Hmax', 2*self.ms, 'Hgrad',...
 %                     growth_rate, 'Hedge', {[self.e_edges(1)], self.ms, ...
 %                     [self.e_edges(2:end)], self.ms});

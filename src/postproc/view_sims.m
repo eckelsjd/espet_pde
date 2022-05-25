@@ -1,8 +1,8 @@
 clear all;
 close all;
 clc;
-addpath('./emitter/');
-data_dir = '../data/base';
+addpath('../emitter/');
+data_dir = '../../data/geometry';
 files = dir(fullfile(data_dir,'sims'));
 
 % Loop over all training data
@@ -13,7 +13,7 @@ for ii = 1:length(files)
     file = fullfile(files(ii).folder,files(ii).name);
     load(file);
     EPOST.solplot(emitter);
-    EPOST.emitterplot(emitter);
+%     EPOST.emitterplot(emitter);
     waitforbuttonpress
     close all;
 end
