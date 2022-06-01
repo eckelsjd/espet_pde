@@ -19,16 +19,14 @@ classdef Emitter < EmitterSim
             % move far field location as log function of h (slow-growing)
 %             h_factor = max(0,log10(self.h/(self.te))/2);
 %             far_field_location = min(0,self.d) - 4*self.te - h_factor*self.h;
-            far_field_location = min(0,self.d) - 4*self.te - 1.5*self.ra;
-            sf = 1.5; % right BC scale factor
+            far_field_location = min(0,self.d) - 4*self.te - 1.2*self.ra;
            
             % Calculated values
             curve_y_delta = self.rc - self.rc*sin(self.alpha);  % curved edge y-delta [m]
             curve_x_delta = self.rc*cos(self.alpha);            % curved edge x-delta [m]
             h_cone = self.h - curve_y_delta;                    % height of emitter cone [m]
             rb = curve_x_delta + h_cone*tan(self.alpha);        % Emitter base radius [m]
-            x_max = rb * sf;                                    % Scene x boundary
-            x_max = max(x_max, self.ra * sf); % move x boundary if ra is bigger
+            x_max = max(rb + abs(self.d) + self.h, 1.2*self.ra);    % Scene x boundary
         
             % Emitter points [X,Y] : (0,0) is below emitter tip
             E1 = [0 self.d];

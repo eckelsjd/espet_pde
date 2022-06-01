@@ -1,6 +1,8 @@
 from pathlib import Path
 import numpy as np
 import random
+from scipy.stats import qmc
+import matplotlib.pyplot as plt
 
 # Bounds on geometry parameters
 H_BOUNDS = [50, 1000]       # um
@@ -10,16 +12,34 @@ D_BOUNDS = [-1000, 3000]    # um
 RA_BOUNDS = [10, 3000]      # um
 
 
-def sampler(n, max_tries=100):
+# Latin hypercube sampling
+def lhc_sampler(n, max_tries=100):
     i = 0
     try_count = 0
-    samples = np.zeros((n, 5))
+    dim = 5
+
+    # Latin hypercube sampler setup
+    l_bounds = [D_BOUNDS[0], RC_BOUNDS[0], ALPHA_BOUNDS[0], H_BOUNDS[0], RA_BOUNDS[0]]
+    u_bounds = [D_BOUNDS[1], RC_BOUNDS[1], ALPHA_BOUNDS[1], H_BOUNDS[1], RA_BOUNDS[1]]
+    sampler = qmc.LatinHypercube(d=dim, optimization='random-cd')
+    samples = np.zeros((n, dim))
+
     while i < n:
-        h = random.uniform(H_BOUNDS[0], H_BOUNDS[1])
-        alpha = random.uniform(ALPHA_BOUNDS[0], ALPHA_BOUNDS[1])
-        rc = random.uniform(RC_BOUNDS[0], RC_BOUNDS[1])
-        d = random.uniform(D_BOUNDS[0], D_BOUNDS[1])
-        ra = random.uniform(RA_BOUNDS[0], RA_BOUNDS[1])
+        # LHC sampling
+        ns = sampler.random(n=1)
+        ns_scaled = qmc.scale(ns, l_bounds, u_bounds)
+        d = ns_scaled[0, 0]
+        rc = ns_scaled[0, 1]
+        alpha = ns_scaled[0, 2]
+        h = ns_scaled[0, 3]
+        ra = ns_scaled[0, 4]
+
+        # Uniformly sample
+        # h = random.uniform(H_BOUNDS[0], H_BOUNDS[1])
+        # alpha = random.uniform(ALPHA_BOUNDS[0], ALPHA_BOUNDS[1])
+        # rc = random.uniform(RC_BOUNDS[0], RC_BOUNDS[1])
+        # d = random.uniform(D_BOUNDS[0], D_BOUNDS[1])
+        # ra = random.uniform(RA_BOUNDS[0], RA_BOUNDS[1])
 
         if check_geom_constraints(d, rc, alpha, h, ra):
             samples[i, :] = [d*1e-6, rc*1e-6, alpha, h*1e-6, ra*1e-6]
@@ -101,6 +121,27 @@ def check_geom_constraints(d, rc, alpha, h, ra):
 
 
 if __name__ == '__main__':
+    # d = 3
+    # n = 2000
+    # l_bounds = [-5, 0, 0]
+    # u_bounds = [2, 3, 5]
+    # sampler = qmc.LatinHypercube(d=d, optimization='random-cd')
+    # samples = np.zeros((n, d))
+    #
+    # for i in range(n):
+    #     ns = sampler.random(n=1)
+    #     if ns[0, 2] > ns[0, 0]:
+    #         samples[i, :] = ns
+    #
+    # scaled = qmc.scale(samples, l_bounds, u_bounds)
+
+    # plt.scatter(samples[:, 0], samples[:, 1], s=15, c='r')
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='3d')
+    # ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], s=15, c='r')
+    # ax.scatter(scaled[:, 0], scaled[:, 1], scaled[:, 2], s=15, c='b')
+    # plt.show()
+
     # d = 360e-6
     # rc = 1.6e-5
     # alpha = 30
@@ -128,8 +169,8 @@ if __name__ == '__main__':
     fd = open(sfile, 'w')
     fd.write('d rc alpha h ra\n')
 
-    n = 200
-    samples = sampler(n)
+    n = 15000
+    samples = lhc_sampler(n)
 
     for i in range(n):
         params = samples[i, :]
@@ -137,3 +178,4 @@ if __name__ == '__main__':
         fd.write(wstring)
 
     fd.close()
+

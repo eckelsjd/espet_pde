@@ -44,7 +44,7 @@ classdef (Abstract) EmitterSim < handle
             growth_rate = 1.05;
             refine_factor = 8;
             ms_max = refine_factor*self.ms;
-            Nmax = 10000;          % max nodes 
+            Nmax = 15000;          % max nodes 
             [max_vals, ~] = max(self.emagmodel.Geometry.Vertices);
             xmax = max_vals(1); ymax = max_vals(2);
             [min_vals, ~] = min(self.emagmodel.Geometry.Vertices);

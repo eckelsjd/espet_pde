@@ -28,12 +28,12 @@ samples = datastruct.data;
 [nsamples, nparams] = size(samples);
 
 % Store bad simulation parameters
-bad_mesh = [];
-bad_edges = [];
+% bad_mesh = [];
+% bad_edges = [];
 
 %% Run simulations
 tic
-for ii = 1:nsamples
+parfor ii = 1:nsamples
     if mod(ii, 100) == 0
         toc
         fprintf('Iteration: %i\n',ii)
@@ -52,32 +52,34 @@ for ii = 1:nsamples
 
     try
         emitter = Emitter(d,rc,alpha,h,ra,te,V0);
-        %     EPOST.solplot(emitter)
-        %     waitforbuttonpress
-        %     close all;
-        save(fulldir,'emitter');
+        parsave(fulldir, emitter);
     catch ME
+        fprintf('Caught an ME error\n')
         % Save parameters that caused bad simulations
-        switch ME.identifier
-            case 'EmitterSim:badMesh'
-                bad_mesh = [bad_mesh; [d, rc, curr_geo(3), h, ra]];
-            case 'pde:pdeModel:BadGeomIntersectingEdges'
-                bad_edges = [bad_edges; [d, rc, curr_geo(3), h, ra]];
-            otherwise
-                rethrow(ME)
-        end
+%         switch ME.identifier
+%             case 'EmitterSim:badMesh'
+%                 bad_mesh = [bad_mesh; [d, rc, curr_geo(3), h, ra]];
+%             case 'pde:pdeModel:BadGeomIntersectingEdges'
+%                 bad_edges = [bad_edges; [d, rc, curr_geo(3), h, ra]];
+%             otherwise
+%                 rethrow(ME)
+%         end
     end
 end
 
 % Save the failed simulation parameters
-bs_file = fullfile(data_dir, dataset, 'samples', 'bad_mesh_samples.txt');
-fd = fopen(bs_file, 'wt');
-fprintf(fd, 'd rc alpha h ra\n');
-fclose(fd);
-writematrix(bad_mesh, bs_file, 'Delimiter', ' ', 'WriteMode', 'append');
+% bs_file = fullfile(data_dir, dataset, 'samples', 'bad_mesh_samples.txt');
+% fd = fopen(bs_file, 'wt');
+% fprintf(fd, 'd rc alpha h ra\n');
+% fclose(fd);
+% writematrix(bad_mesh, bs_file, 'Delimiter', ' ', 'WriteMode', 'append');
+% 
+% bs_file = fullfile(data_dir, dataset, 'samples', 'bad_edges_samples.txt');
+% fd = fopen(bs_file, 'wt');
+% fprintf(fd, 'd rc alpha h ra\n');
+% fclose(fd);
+% writematrix(bad_edges, bs_file, 'Delimiter', ' ', 'WriteMode', 'append');
 
-bs_file = fullfile(data_dir, dataset, 'samples', 'bad_edges_samples.txt');
-fd = fopen(bs_file, 'wt');
-fprintf(fd, 'd rc alpha h ra\n');
-fclose(fd);
-writematrix(bad_edges, bs_file, 'Delimiter', ' ', 'WriteMode', 'append');
+function parsave(fname, emitter)
+    save(fname, 'emitter');
+end
