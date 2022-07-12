@@ -7,27 +7,34 @@ clc;
 
 % Load training data
 data_dir = '../../data/';
-dataset1 = 'base'; 
-dataset2 = 'feasible';
+dataset = 'geometry';
 prefix = 'train';
-file = fullfile(data_dir, dataset2, prefix, sprintf('%s_dffnet_max.mat', prefix));
-feasible_data = load(file);
-file = fullfile(data_dir, dataset1, prefix,sprintf('%s_dffnet_max.mat', prefix));
-base_data = load(file);
-
-% Combine feasible and base design spaces
-xdata = [feasible_data.xdata, base_data.xdata];
-ydata = [feasible_data.ydata, base_data.ydata];
+file = fullfile(data_dir, dataset, prefix, sprintf('%s_dffnet_max.mat', prefix));
+geometry_data = load(file);
+xdata = geometry_data.xdata;
+ydata = geometry_data.ydata;
 
 % Remove Emax outliers for better training
-[ydata,outlierIndices] = rmoutliers(ydata,"percentiles",[0 99.98]);
-xdata = xdata(:, ~outlierIndices);
+% [ydata,outlierIndices] = rmoutliers(ydata,"percentiles",[0 99.9]);
+% xdata = xdata(:, ~outlierIndices);
+% [ydata,outlierIndices] = rmoutliers(ydata,"percentiles",[0 99.9]);
+% xdata = xdata(:, ~outlierIndices);
 
 % Non-dimensionalize
 hvec = xdata(4,:);
 V0 = 1000;
-x = [xdata(1,:)./hvec; log10(xdata(2,:)./hvec); xdata(3,:); xdata(5,:)./hvec];
-y = log10(ydata ./ (V0./hvec));
+xoffset = 1000e-6;
+x = [(xdata(1,:)+xoffset)./hvec; xdata(2,:)./hvec; xdata(3,:); xdata(5,:)./hvec];
+y = ydata ./ (V0./hvec);
+
+% Convert to uniform distribution by CDF transform
+[x1, lambdax1] = exp_cdf(x(1,:));
+[x2, lambdax2] = exp_cdf(x(2,:));
+% % Alpha is already pretty uniform by itself
+[x4, lambdax4] = exp_cdf(x(4,:));
+[y, lambda_y] = exp_cdf(y);
+x = [x1; x2; x(3,:); x4];
+lambda_x = [lambdax1, lambdax2, 0, lambdax4];
 
 % Normalize
 [xn, xs] = mapminmax(x, -1, 1);
@@ -52,14 +59,15 @@ miniBatchSize = 2048;
 options = trainingOptions('adam', ...
     'MiniBatchSize',miniBatchSize, ...
     'InitialLearnRate', 0.001, ... % default
-    'MaxEpochs', 2000, ...
+    'MaxEpochs', 1000, ...
     'Shuffle','every-epoch', ...
     'ValidationData',{xVal', yVal'}, ...
-    'ValidationFrequency', 200, ... % default 50
+    'ValidationFrequency', 100, ... % default 50
     'Plots','training-progress', ...
     'Verbose',false, ...
-    'ExecutionEnvironment', 'gpu', ...
-    'OutputFcn', @(x)makeLogVertAx(x));
+    'ExecutionEnvironment', 'parallel', ...
+    'OutputFcn', @(x)makeLogVertAx(x), ...
+    'OutputNetwork', 'best-validation-loss');
 
 %% Other training options
 % LearnRateSchedule = piecewise
@@ -77,12 +85,12 @@ options = trainingOptions('adam', ...
 [net, info] = trainNetwork(xTrain', yTrain', layers, options);
 
 % Save network mat object and training info
-save(fullfile(data_dir, dataset1, 'models','model_onnxnet.mat'),'net', ...
-    'info','options', 'xs', 'ys', 'miniBatchSize', 'V0');
+save(fullfile(data_dir, dataset, 'models','model_onnxnet.mat'),'net', ...
+    'info','options', 'xs', 'ys', 'lambda_x', 'lambda_y', 'xoffset', 'miniBatchSize', 'V0');
 
 % Export to onnx and save normalization data
-exportONNXNetwork(net, fullfile(data_dir, dataset1, 'models', 'esi_surrogate.onnx'))
-save(fullfile(data_dir, dataset1, 'models', 'norm_data.mat'), 'xs', 'ys', 'V0')
+exportONNXNetwork(net, fullfile(data_dir, dataset, 'models', 'esi_surrogate.onnx'));
+save(fullfile(data_dir, dataset, 'models', 'norm_data.mat'), 'xs', 'ys', 'V0', 'lambda_x', 'lambda_y', 'xoffset');
 
 %% Functions
 function stop = makeLogVertAx(state)
@@ -134,4 +142,13 @@ function [layers, num_params] = construct_ffnet(nodes)
     layers = [layers
         fullyConnectedLayer(Noutputs, "Name", fc_name)
         regressionLayer("Name","regressionoutput")];
+end
+
+
+% Fit an exponential distribution to the column vector x and return the CDF
+% of the samples in x (CDF(X) ~ U(0,1))
+function [u, lambda] = exp_cdf(x)
+    pd = fitdist(x', 'exponential');
+    lambda = 1/pd.mu;
+    u = 1 - exp(-lambda*x);
 end

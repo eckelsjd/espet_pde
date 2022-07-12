@@ -5,57 +5,65 @@ from scipy.stats import qmc
 import matplotlib.pyplot as plt
 
 # Bounds on geometry parameters
-H_BOUNDS = [50, 1000]       # um
+# H_BOUNDS = [50, 1000]       # um
+H_BOUNDS = [83, 1000]
 ALPHA_BOUNDS = [10, 70]     # deg
 RC_BOUNDS = [1, 100]        # um
-D_BOUNDS = [-1000, 3000]    # um
+# D_BOUNDS = [-1000, 3000]    # um
+D_BOUNDS = [0, 3000]
 RA_BOUNDS = [10, 3000]      # um
+L_BOUNDS = [D_BOUNDS[0], RC_BOUNDS[0], ALPHA_BOUNDS[0], H_BOUNDS[0], RA_BOUNDS[0]]
+U_BOUNDS = [D_BOUNDS[1], RC_BOUNDS[1], ALPHA_BOUNDS[1], H_BOUNDS[1], RA_BOUNDS[1]]
 
 
 # Latin hypercube sampling
-def lhc_sampler(n, max_tries=100):
-    i = 0
-    try_count = 0
-    dim = 5
+def lhc_sampler(n, max_tries=100, l_bounds=L_BOUNDS, u_bounds=U_BOUNDS, reject=True):
+    # Rejection only setup for emitter sampling with default bounds
+    dim = len(l_bounds)
+    if reject:
+        assert l_bounds == L_BOUNDS
+        assert u_bounds == U_BOUNDS
 
-    # Latin hypercube sampler setup
-    l_bounds = [D_BOUNDS[0], RC_BOUNDS[0], ALPHA_BOUNDS[0], H_BOUNDS[0], RA_BOUNDS[0]]
-    u_bounds = [D_BOUNDS[1], RC_BOUNDS[1], ALPHA_BOUNDS[1], H_BOUNDS[1], RA_BOUNDS[1]]
-    sampler = qmc.LatinHypercube(d=dim, optimization='random-cd')
-    samples = np.zeros((n, dim))
+    assert dim == len(l_bounds)
+    assert dim == len(u_bounds)
 
-    while i < n:
-        # LHC sampling
-        ns = sampler.random(n=1)
+    # sampler = qmc.LatinHypercube(d=dim, optimization='random-cd')
+    sampler = qmc.LatinHypercube(d=dim)
+
+    if reject:
+        samples = np.zeros((n, dim))
+        i = 0
+        try_count = 0
+        while i < n:
+            # LHC sampling
+            ns = sampler.random(n=1)
+            ns_scaled = qmc.scale(ns, l_bounds, u_bounds)
+            d = ns_scaled[0, 0]
+            rc = ns_scaled[0, 1]
+            alpha = ns_scaled[0, 2]
+            h = ns_scaled[0, 3]
+            ra = ns_scaled[0, 4]
+
+            if check_geom_constraints(d, rc, alpha, h, ra):
+                samples[i, :] = [d*1e-6, rc*1e-6, alpha*np.pi/180, h*1e-6, ra*1e-6]
+                i += 1
+
+                if try_count > 0:
+                    try_count = 0
+                    # print(f'RESET for i={i}')
+            else:
+                try_count += 1
+                print(f'RETRY {try_count} OUT OF {max_tries} for i={i}')
+                if try_count >= max_tries:
+                    print(f'MAX RETRIES LIMIT HIT. SAMPLING FAILED')
+                    break
+
+        return samples
+    else:
+        # No rejection sampling
+        ns = sampler.random(n=n)
         ns_scaled = qmc.scale(ns, l_bounds, u_bounds)
-        d = ns_scaled[0, 0]
-        rc = ns_scaled[0, 1]
-        alpha = ns_scaled[0, 2]
-        h = ns_scaled[0, 3]
-        ra = ns_scaled[0, 4]
-
-        # Uniformly sample
-        # h = random.uniform(H_BOUNDS[0], H_BOUNDS[1])
-        # alpha = random.uniform(ALPHA_BOUNDS[0], ALPHA_BOUNDS[1])
-        # rc = random.uniform(RC_BOUNDS[0], RC_BOUNDS[1])
-        # d = random.uniform(D_BOUNDS[0], D_BOUNDS[1])
-        # ra = random.uniform(RA_BOUNDS[0], RA_BOUNDS[1])
-
-        if check_geom_constraints(d, rc, alpha, h, ra):
-            samples[i, :] = [d*1e-6, rc*1e-6, alpha, h*1e-6, ra*1e-6]
-            i += 1
-
-            if try_count > 0:
-                try_count = 0
-                print(f'RESET for i={i}')
-        else:
-            try_count += 1
-            print(f'RETRY {try_count} OUT OF {max_tries} for i={i}')
-            if try_count >= max_tries:
-                print(f'MAX RETRIES LIMIT HIT. SAMPLING FAILED')
-                break
-
-    return samples
+        return ns_scaled
 
 
 def check_base_constraints(d, rc, alpha, h, ra):
@@ -164,12 +172,12 @@ if __name__ == '__main__':
     # ra = 3.9711e-5
     # b = check_geom_constraints(d*1e6, rc*1e6, alpha, h*1e6, ra*1e6)
 
-    sdir = Path('../../data/geometry/samples')
-    sfile = sdir / 'samples.txt'
+    sdir = Path('../../data/geometry/test/samples')
+    sfile = sdir / 'samples2.txt'
     fd = open(sfile, 'w')
     fd.write('d rc alpha h ra\n')
 
-    n = 15000
+    n = 30000
     samples = lhc_sampler(n)
 
     for i in range(n):
