@@ -32,12 +32,12 @@ samples = datastruct.data;
 % bad_edges = [];
 
 %% Run simulations
-tic
+% tic
 parfor ii = 1:nsamples
     if mod(ii, 100) == 0
-        toc
+        % toc
         fprintf('Iteration: %i\n',ii)
-        tic
+        % tic
     end
     curr_geo = samples(ii,:);
     d = curr_geo(1); rc = curr_geo(2); alpha = curr_geo(3)*(pi/180);

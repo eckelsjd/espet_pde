@@ -68,7 +68,7 @@ classdef (Abstract) EmitterSim < handle
             bad_mesh = true;
             iter = 1;
             while bad_mesh
-                if iter > 10
+                if iter > 1
 %                     error('Could not fix mesh :(');
                     throw(MException('EmitterSim:badMesh', 'Poor mesh quality'))
                 end
