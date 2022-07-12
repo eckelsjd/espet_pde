@@ -10,6 +10,7 @@ import onnx      # to load trained neural network
 import onnxruntime as ort  # to run inference
 from pathlib import Path
 import matplotlib.pyplot as plt
+import warnings
 
 # Hardcoded normalization settings from training data
 # Network inputs
@@ -29,6 +30,15 @@ YS_DEFAULT = {'xmin': np.array([[0.009316156987571]]),
 
 # Bias Voltage
 V0_DEFAULT = 1000  # V
+
+# Bounds on geometry parameters
+H_BOUNDS = [50*1e-6, 1000*1e-6]       # m
+ALPHA_BOUNDS = [10*np.pi/180, 70*np.pi/180]     # rad
+RC_BOUNDS = [1*1e-6, 100*1e-6]        # m
+D_BOUNDS = [-1000*1e-6, 3000*1e-6]    # m
+RA_BOUNDS = [10*1e-6, 3000*1e-6]      # m
+L_BOUNDS = [D_BOUNDS[0], RC_BOUNDS[0], ALPHA_BOUNDS[0], H_BOUNDS[0], RA_BOUNDS[0]]
+U_BOUNDS = [D_BOUNDS[1], RC_BOUNDS[1], ALPHA_BOUNDS[1], H_BOUNDS[1], RA_BOUNDS[1]]
 
 
 def parse_norm_settings(filename='../../data/geometry/models/norm_data.mat'):
@@ -119,6 +129,67 @@ def exp_cdf_inv(x, lambda_coeff):
     return (-1/lambda_coeff)*np.log(np.abs(1-x))
 
 
+def check_geom_constraints(x):
+    """
+    Check that all 3 practical geometry constraints are met (1. within limits, 2. height lower bound, 3. non-contact)
+    :param x: (5, Nsamples) np array where each column is an emitter geometry [d, Rc, alpha, h, Ra]^T
+                in units of [m, m, rad, m, m]
+    :return (1, Nsamples) boolean array to indicate the idx of samples that did not meet all design constraints
+    """
+    d = x[0, :]  # Tip-to-extractor distance [m]
+    rc = x[1, :]  # Radius of curvature [m]
+    alpha = x[2, :]  # Cone half-angle [rad]
+    h = x[3, :]  # Emitter height [m]
+    ra = x[4, :]  # Radius of aperture [m]
+    Nsamples = x.shape[1]
+
+    # Check that all samples are in design space bounds
+    lb = np.array(L_BOUNDS)[:, np.newaxis]
+    lb = np.tile(lb, (1, Nsamples))
+    ub = np.array(U_BOUNDS)[:, np.newaxis]
+    ub = np.tile(ub, (1, Nsamples))
+    ds_constraint = (x < lb) + (x > ub)
+
+    # Constraints are set to true when they are violated
+    ds_constraint = np.any(ds_constraint, axis=0)
+
+    # Check lower height bound (5% for numerical safety)
+    hl = np.multiply(rc, (1 - np.sin(alpha)))
+    h_constraint = h < 1.05*hl
+
+    # Check non-contact constraint
+    # Cone base radius
+    rb = np.multiply(rc, np.cos(alpha)) + np.multiply((h - hl), np.tan(alpha))
+
+    # Cone height
+    h0 = np.divide(rb, np.tan(alpha))
+
+    # Get emitter cross-sectional radius at r(y=y_crit)
+    y_crit = h - np.abs(d)
+
+    # Mask for piecewise parameterization of emitter cone radius (first piece is linear region)
+    b1 = 0 < y_crit
+    b2 = y_crit < h - hl
+    y_mask = b1 * b2
+    r_crit_1 = (rb - np.multiply(np.divide(rb, h0), y_crit)) * y_mask
+
+    # Second piece is circular arc
+    b1 = h - hl <= y_crit
+    b2 = y_crit <= h
+    y_mask = b1 * b2
+    yc = h - rc
+    r_crit_2 = np.sqrt(np.abs(np.square(rc) - np.square(y_crit - yc))) * y_mask
+
+    r_crit = r_crit_1 + r_crit_2
+
+    # 5% margin for numerical safety
+    d_constraint = (r_crit >= ra * 0.95) + (y_crit <= 0)
+    d_sign = d < 0
+    d_constraint = d_constraint * d_sign
+
+    return ds_constraint + h_constraint + d_constraint
+
+
 def forward(x, net_file='esi_surrogate.onnx', data_file=None, V0=None):
     """Run a forward inference pass of the network saved in net_file on the inputs x.
     :param x: (5, Nsamples) np array where each column is an emitter geometry [d, Rc, alpha, h, Ra]^T
@@ -136,6 +207,14 @@ def forward(x, net_file='esi_surrogate.onnx', data_file=None, V0=None):
     else:
         Ninputs, Nsamples = x.shape
     assert Ninputs == 5
+
+    # Check if all inputs meet practical geometry constraints
+    constraints_failed = check_geom_constraints(x)
+
+    if np.any(constraints_failed):
+        warnings.warn('Forward network pass failed! Some of the inputs do not lie within the training bounds of the '
+                      'surrogate. The bad inputs are flagged by index in the return value of this function.')
+        return constraints_failed
 
     # Set normalization settings
     if data_file:

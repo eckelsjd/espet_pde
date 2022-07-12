@@ -12,6 +12,8 @@ def main():
     # input to forward() shape = (Nfeatures, Nsamples), where Nfeatures = 5
     E_max = forward(test_data.T)  # E_max.shape = (Nsamples,)
     plt.hist(E_max, density=True, bins=50, edgecolor='black')
+    plt.xlabel('Electric field magnitude [V/m]')
+    plt.ylabel('Empirical PDF over test set')
     plt.show()
 
 

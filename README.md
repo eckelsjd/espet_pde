@@ -27,3 +27,11 @@ Statistics and Machine Learning Toolbox               Version 12.2        (R2021
 
 ## Usage
 See an [example](surrogate_example).
+
+## Citation
+Please cite as:
+```angular2html
+Eckels, J. D., Whittaker, C. B., Jorns, B. A., St. Peter, B., Dressler, R. A., and Gorodetsky, A. A., “Simulation-based surrogate methodology of electric field for
+electrospray emitter geometry design and uncertainty quantification,” Proceedings of the 37th International Electric Propulsion Conference, Boston, MA,
+2022, pp. tba.
+```
