@@ -9,21 +9,26 @@ addpath('../postproc')
 
 % Base design
 N = 20;
+% ra = 300e-6*ones(1,N);
+% d = 500e-6*ones(1,N);
+% rc = 30e-6*ones(1,N);
+% alpha = 30*(pi/180)*ones(1,N);
+% h = 300e-6*ones(1,N);
 ra = 300e-6*ones(1,N);
-d = 500e-6*ones(1,N);
-rc = 30e-6*ones(1,N);
+d = 360e-6*ones(1,N);
+rc = 16e-6*ones(1,N);
 alpha = 30*(pi/180)*ones(1,N);
-h = 300e-6*ones(1,N);
-V = 1000;
+h = 350e-6*ones(1,N);
+V = 100e3;
 te = 76e-6;
 
 % Swept parameter
-% ra = linspace(10e-6, 3000e-6, N);
+ra = linspace(10e-6, 3000e-6, N);
 % d = linspace(-280e-6, 3000e-6, N);
 % rc = linspace(1e-6, 100e-6, N);
 % alpha = linspace(10, 70, N)*(pi/180);
-h = linspace(50e-6, 1000e-6, N);
-sweep = h*1e6;
+% h = linspace(50e-6, 1000e-6, N);
+sweep = ra*1e3;
 
 emax = zeros(1, N);
 emax_sim = zeros(1, N);
@@ -72,11 +77,11 @@ plot(sweep, emax, '--or');
 hold on;
 plot(sweep, emax_sim, '--ok');
 plot(sweep_ms(idx), emax_ms(idx), '-k');
-% xlabel('Radius of aperture $R_a$ [$\mu m$]','Interpreter','latex');
+xlabel('Radius of aperture $R_a$ [$mm$]','Interpreter','latex');
 % xlabel('Tip-to-extractor distance $d$ [$\mu m$]','Interpreter','latex');
 % xlabel('Radius of curvature $R_c$ [$\mu m$]','Interpreter','latex');
 % xlabel('Cone half-angle $\alpha$ [deg]','Interpreter','latex');
-xlabel('Emitter height $h$ [$\mu m$]','Interpreter','latex');
+% xlabel('Emitter height $h$ [$\mu m$]','Interpreter','latex');
 ylabel('Max E-field magnitude [V/m]', 'Interpreter','latex');
 leg = legend('Surrogate', 'Simulation', 'Martinez-Sanchez');
 set(leg, 'Interpreter','latex');
